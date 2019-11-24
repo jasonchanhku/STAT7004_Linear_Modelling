@@ -61,15 +61,16 @@ sxx_b1 <- xtx[2, 2] - n*(xtx[1,2]/n)^2
 # assume that it can be simplified into one variable.....
 f_pred_interval <- function(a=0.05, difference=5){
   
-  l_hat <- beta[2]*difference
+  atx0 <- matrix(c(0, difference, 0), nrow = 1, ncol = 3)
   
-  # using back the tutorial scratch notes for individual difference
-  # modified it for the mean
+  l_hat <- atx0 %*% beta 
   
-  lower <- l_hat - qt(p = a/2 ,df = n-2,lower.tail = FALSE)*sqrt(mse * (difference^2/sxx_b1))
-  upper <- l_hat + qt(p = a/2 ,df = n-2,lower.tail = FALSE)*sqrt(mse * (difference^2/sxx_b1))
+  se_l <- sqrt(mse * (atx0 %*% xtx_inv %*% t(atx0)))
   
-  print(glue("CI for prediction is [{lower}, {upper}]"))
+  lower <- l_hat - se_l * qt(0.05/2, n-p-1, lower.tail = FALSE) 
+  upper <- l_hat + se_l * qt(a/2, n-p-1, lower.tail = FALSE) 
+  
+  print(glue("Prediction CI is [{lower}, {upper}]"))
   
 } ; f_pred_interval()
 
@@ -81,6 +82,9 @@ g_pred_interval<- function(a=0.05){
   l_hat <- t(x0) %*% beta
   se_l <- sqrt(mse * (t(x0) %*% xtx_inv %*% x0 + 1))
   
+  print(glue("point estimation is {l_hat}"))
+  print(glue("se is {se_l}"))
+  
   lower <- l_hat - qt(p = a/2 ,df = n-p-1,lower.tail = FALSE)*se_l
   upper <- l_hat + qt(p = a/2 ,df = n-p-1,lower.tail = FALSE)*se_l
   
@@ -89,8 +93,45 @@ g_pred_interval<- function(a=0.05){
 } ; g_pred_interval()
 
 
+#(h) general linear hypothesis F-test 
 
+test_1 <- function(){
 
+  C <- matrix(c(0, 1, 1), ncol = 3)
+  l0 <- matrix(c(-1.5), nrow = 1)
+  r <- nrow(C)
+  
+  diff_term <- C %*% beta - l0
+  
+  numerator <- (diff_term %*% (C %*% xtx_inv %*% t(C))^-1 %*% t(diff_term))/ r
+  
+  F_stat <- numerator / mse
+  
+  crit_val <- qf(0.05, df1 = r, df2 = n-p-1, lower.tail = FALSE)
+  
+  print(glue("F-Statistic is {F_stat} and Critical Value is {crit_val}"))
+  print(glue("Since F-Statistic is less than the critical value, do not reject H0"))
+} ; test_1()
 
+# (i)
+
+test_2 <- function(){
+  
+  C <- matrix(c(0, 0, 2, 1, 1, 1), nrow = 2, ncol = 3)
+  l0 <- matrix(c(-2, -1.2), ncol = 1)
+  r <- nrow(C)
+  
+  diff_term <- C %*% beta - l0
+  
+  numerator <- (t(diff_term) %*% inv(C %*% xtx_inv %*% t(C)) %*% (diff_term))/ r
+  
+  F_stat <- numerator / mse
+  
+  crit_val <- qf(0.05, df1 = r, df2 = n-p-1, lower.tail = FALSE)
+  
+  print(glue("F-Statistic is {F_stat} and Critical Value is {crit_val}"))
+  print(glue("Since F-Statistic is less than the critical value, do not reject H0"))
+
+} ; test_2()
 
 
